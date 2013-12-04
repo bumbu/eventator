@@ -1,0 +1,47 @@
+<RestClientRequest>
+  <option name="httpMethod" value="GET" />
+  <option name="urlBase" value="http://localhost:3000" />
+  <option name="urlPath" value="/api/authentication/" />
+  <option name="headers">
+    <list>
+      <KeyValuePair>
+        <option name="key" value="Accept" />
+        <option name="value" value="*/*" />
+      </KeyValuePair>
+      <KeyValuePair>
+        <option name="key" value="Cache-Control" />
+        <option name="value" value="no-cache" />
+      </KeyValuePair>
+      <KeyValuePair>
+        <option name="key" value="Cookie" />
+        <option name="value" value="connect.sid=s%3ApnCLLrQkLO1zA2S7LABayVPy.yuQYWRfsXdspuRErRYA0DLOzECDeccAut2q8yE2tb1Q" />
+      </KeyValuePair>
+    </list>
+  </option>
+  <option name="parameters">
+    <list>
+      <KeyValuePair>
+        <option name="key" value="password" />
+        <option name="value" value="123456" />
+      </KeyValuePair>
+      <KeyValuePair>
+        <option name="key" value="email" />
+        <option name="value" value="me@bumbu.ru" />
+      </KeyValuePair>
+      <KeyValuePair>
+        <option name="key" value="firstName" />
+        <option name="value" value="Alex" />
+      </KeyValuePair>
+      <KeyValuePair>
+        <option name="key" value="lastName" />
+        <option name="value" value="Bumbu" />
+      </KeyValuePair>
+    </list>
+  </option>
+  <option name="parametersEnabled" value="true" />
+  <option name="haveTextToSend" value="false" />
+  <option name="haveFileToSend" value="false" />
+  <option name="isFileUpload" value="false" />
+  <option name="textToSend" value="" />
+  <option name="filesToSend" value="" />
+</RestClientRequest>

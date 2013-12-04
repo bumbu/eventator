@@ -24,50 +24,52 @@ module.exports = function(grunt) {
         , watchedFolders: ['server/']
         // , nodeArgs: ['--debug']
         , env: {
-            PORT: '3000'
-          , NODE_ENV: 'development'
+            NODE_ENV: 'development'
+          // , PORT: '3000'
           }
         , exec: 'iced'
         }
       }
     },
-    // coffee: {
-    //   production: {
-    //     options: {
-    //       bare: true
-    //     },
-    //     files: [{
-    //       expand: true,
-    //       cwd: 'src',
-    //       src: '*.coffee',
-    //       dest: 'server',
-    //       ext: '.js'
-    //     }]
-    //   },
-    //   development: {
-    //     options: {
-    //       bare: true
-    //     , sourceMap: true
-    //     },
-    //     files: [{
-    //       expand: true,
-    //       cwd: 'src',
-    //       src: '*.coffee',
-    //       dest: 'server',
-    //       ext: '.js'
-    //     }]
-    //   }
-    // },
-    // clean: {
-    //   all: {
-    //     src: ['server/**/*.map']
-    //   }
-    // }
+    coffee: {
+      // production: {
+      //   options: {
+      //     bare: true
+      //   },
+      //   files: [{
+      //     expand: true,
+      //     cwd: 'src',
+      //     src: '*.coffee',
+      //     dest: 'server',
+      //     ext: '.js'
+      //   }]
+      // },
+      development: {
+        options: {
+          bare: true
+        // , sourceMap: true
+        },
+        files: [{
+          expand: true,
+          cwd: 'server',
+          src: '**/*.coffee',
+          dest: '.compiled',
+          ext: '.js'
+        }]
+      }
+    },
+    clean: {
+      all: {
+        src: ['.compiled/**/*']
+      }
+    },
     mochaTest: {
       test: {
         options: {
-          reporter: 'spec'
+          reporter: 'spec' // may use nyan when having many tests
         , require: 'iced-coffee-script'
+        , timeout: 2000
+        , colors: true
         },
         src: ['tests/**/*.coffee']
       }
@@ -88,9 +90,9 @@ module.exports = function(grunt) {
 
 
   grunt.registerTask('development', [
-    // 'clean',
-    // 'coffee:development',
-    'nodemon',
+    'clean'               // clean .compiled
+  , 'coffee:development'  // compile coffee to JS version into .compiled
+  , 'nodemon'
     // 'watch'
   ]);
   grunt.registerTask('d', ['development']);

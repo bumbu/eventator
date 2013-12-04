@@ -1,17 +1,47 @@
-console.log? 'try to run'
+config = require('./config')()
 
+# requires
 express = require 'express'
-app = express()
+log = require('./common/logging.coffee').log
+routerAPI = require('./api/router.coffee')
+_package = require('./../package.json')
+mongoose = require 'mongoose'
+MongoStore = require('connect-mongo')(express)
 
-app.get '/', (req, res)->
-  body = 'Hello World'
-  res.setHeader 'Content-Type', 'text/plain'
-  res.setHeader 'Content-Length', body.length
-  res.end body
+# Do not use creatConnection as it creates private connection http://stackoverflow.com/a/10200999/1194327
+# db = mongoose.createConnection('localhost', config.db)
+mongoose.connect('mongodb://localhost/'+config.db)
+db = mongoose.connection
 
-app.get '/test/', (req, res)->
-  res.send 'Hello Test 2' + process.env.PORT
+db.on 'error', ()->
+  log 'failing connecting to database'
 
-app.listen 3000
+# when connection to database established
+db.once 'open', ()->
+  # instantiate app
+  app = express()
 
-console.log? 'app listening now'
+  # set handlers order
+  app.use express.static __dirname + '/../public'
+  app.use express.cookieParser()
+  app.use express.session
+    store: new MongoStore
+      url: 'mongodb://localhost/'+config.dbSession
+    secret: config.secretSession
+  app.use express.bodyParser()
+  app.use express.methodOverride()
+  app.use app.router
+  app.use (err, req, res, next)->
+    log err.stack
+    res.json 500,
+      error_description: 'Something got broken on the server side'
+
+  # add routes
+  routerAPI.bindRoutes app
+
+  # start listening
+  app.listen config.port
+
+  log 'App listening on port ' + config.port
+  log 'Mode ' + config.mode
+  log 'Database ' + config.db

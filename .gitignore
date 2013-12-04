@@ -1,5 +1,6 @@
 .idea
 node_modules
 .old
+.compiled
 logs
 !logs/.gitkeep
