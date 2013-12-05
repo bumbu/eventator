@@ -2,11 +2,12 @@ config = require('./config')()
 
 # requires
 express = require 'express'
+MongoStore = require('connect-mongo')(express)
+mongoose = require 'mongoose'
+_package = require('./../package.json')
 log = require('./common/logging.coffee').log
 routerAPI = require('./api/router.coffee')
-_package = require('./../package.json')
-mongoose = require 'mongoose'
-MongoStore = require('connect-mongo')(express)
+authentication = require('./common/authentication.coffee')
 
 # Do not use creatConnection as it creates private connection http://stackoverflow.com/a/10200999/1194327
 # db = mongoose.createConnection('localhost', config.db)
@@ -30,6 +31,20 @@ db.once 'open', ()->
     secret: config.secretSession
   app.use express.bodyParser()
   app.use express.methodOverride()
+  # check for authentication
+  app.use (req, res, next)->
+    if routerAPI.doesRequireAuthentication(req.url, req.method)
+      authentication.check req, res, next
+    else
+      next()
+  # mixin params
+  app.use (req, res, next)->
+    req._params = req.params || {}
+    for key, value of req.query
+      req._params[key] = value if req._params[key] is undefined
+    for key, value of req.body
+      req._params[key] = value if req._params[key] is undefined
+    next()
   app.use app.router
   app.use (err, req, res, next)->
     log err.stack
