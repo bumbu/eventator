@@ -3,6 +3,33 @@ supertest = require('supertest')
 api = supertest('http://localhost:3000')
 _package = require('./../package.json')
 
+deleteUser = (email, password, done, callback)->
+  _cookie = ''
+
+  # try to login
+  api.post('/api/authentication/')
+    .type('form')
+    .send
+      email: email
+      password: password
+    .end (err, res)->
+      return done(err) if err
+
+      return callback() if not res.body.success
+
+      # get session cookie
+      if res.header['set-cookie']?[0]?
+        _cookie = res.header['set-cookie'][0].split(';')[0]
+
+      # ensure unexistent user
+      api.del('/api/user/')
+        .set('Cookie', _cookie)
+        .expect(200)
+        .end (err, res)->
+          return done(err) if err
+          callback()
+
+
 describe 'API', ()->
 
   it 'main path', (done)->
@@ -17,7 +44,11 @@ describe 'API', ()->
 
 describe 'User', (done)->
   cookie = ''
+  userId = ''
 
+  # Ensure me@bumbu.ru exists
+  # Ensure test@bumbu.ru doesn't exist
+  # Ensure test2@bumbu.ru doesn't exist
   before (done)->
     # ensure existent user
     api.post('/api/user/')
@@ -29,30 +60,10 @@ describe 'User', (done)->
       .end (err, res)->
         return done(err) if err
 
-        _cookie = ''
+        # delete test user
+        deleteUser 'test@bumbu.ru', '123456', done, ()->
+          deleteUser 'test2@bumbu.ru', '123456', done, done
 
-        # try to login with test user
-        api.post('/api/authentication/')
-          .type('form')
-          .send
-            email: 'test@bumbu.ru'
-            password: '123456'
-          .end (err, res)->
-            return done(err) if err
-
-            return done() if not res.body.success
-
-            # get session cookie
-            if res.header['set-cookie']?[0]?
-              _cookie = res.header['set-cookie'][0].split(';')[0]
-
-            # ensure unexistent user
-            api.del('/api/user/')
-              .set('Cookie', _cookie)
-              .expect(200)
-              .end (err, res)->
-                return done(err) if err
-                done()
 
   it 'register user, empty email address', (done)->
     api.post('/api/user/')
@@ -162,9 +173,9 @@ describe 'User', (done)->
 
         done()
 
+  # + retrieves cookie
   it 'successfully register an user', (done)->
     api.post('/api/user/')
-      .set('Cookie', cookie)
       .send
         email: 'test@bumbu.ru'
         password: '123456'
@@ -183,6 +194,7 @@ describe 'User', (done)->
 
         done()
 
+  # + retrieves userID
   it 'retrieve registered and authenticated user data', (done)->
     cookie.should.have.length.above(0)
     api.get('/api/user/')
@@ -196,6 +208,9 @@ describe 'User', (done)->
         res.body.should.have.property('user')
         res.body.user.should.have.property('firstName').equal('Alex')
         res.body.user.should.have.property('lastName').equal('Bumbu')
+        res.body.user.should.have.property('id')
+
+        userId = res.body.user.id
 
         done()
 
@@ -242,6 +257,86 @@ describe 'User', (done)->
 
         done()
 
+  it 'create new user for user testing by id', (done)->
+    api.post('/api/user/')
+      .set('Cookie', cookie)
+      .send
+        email: 'test2@bumbu.ru'
+        password: '123456'
+        firstName: 'Alex'
+        lastName: 'Bumbu'
+      .expect(200)
+      .expect('Content-Type', /json/)
+      .end (err, res)->
+        return done(err) if err
+
+        res.body.should.have.property('success').equal(true)
+
+        done()
+
+  it 'get user by id', (done)->
+    cookie.should.have.length.above(0)
+    userId.should.have.length.above(0)
+    api.get('/api/user/'+userId)
+      .set('Cookie', cookie)
+      .expect(200)
+      .expect('Content-Type', /json/)
+      .end (err, res)->
+        return done(err) if err
+
+        res.body.should.have.property('success').equal(true)
+        res.body.should.have.property('user')
+        res.body.user.should.have.property('id').equal(userId)
+
+        done()
+
+  it 'update user by id', (done)->
+    cookie.should.have.length.above(0)
+    userId.should.have.length.above(0)
+    api.put('/api/user/'+userId)
+      .set('Cookie', cookie)
+      .send
+        firstName: 'Alexandru'
+        lastName: 'Bumbum'
+      .expect(200)
+      .expect('Content-Type', /json/)
+      .end (err, res)->
+        return done(err) if err
+
+        res.body.should.have.property('success').equal(true)
+
+        done()
+
+  it 'check if updated user data is right', (done)->
+    cookie.should.have.length.above(0)
+    userId.should.have.length.above(0)
+    api.get('/api/user/'+userId)
+      .set('Cookie', cookie)
+      .expect(200)
+      .expect('Content-Type', /json/)
+      .end (err, res)->
+        return done(err) if err
+
+        res.body.should.have.property('success').equal(true)
+        res.body.should.have.property('user')
+        res.body.user.should.have.property('firstName').equal('Alexandru')
+        res.body.user.should.have.property('lastName').equal('Bumbum')
+        res.body.user.should.have.property('id').equal(userId)
+
+        done()
+
+  it 'delete user by id', (done)->
+    api.del('/api/user/'+userId)
+      .set('Cookie', cookie)
+      .expect(200)
+      .expect('Content-Type', /json/)
+      .end (err, res)->
+        return done(err) if err
+
+        res.body.should.have.property('success').equal(true)
+
+        done()
+
   it 'self delete user', (done)->
     api.del('/api/user/')
       .set('Cookie', cookie)
@@ -259,24 +354,16 @@ describe 'Authentication', (done)->
   # _email = Math.floor(Math.random()*99999 + 1) + '@bumbu.ru'
   cookie = ''
 
-  # Register new user
+  # Create new user
   before (done)->
+    deleteUser 'test@bumbu.ru', '123456', done, done
+
     api.post('/api/user/')
       .send
         email: 'test@bumbu.ru'
         password: '123456'
         firstName: 'Alex'
         lastName: 'Bumbu'
-      .end (err, res)->
-        return done(err) if err
-
-        done()
-
-  # delete previously created user user
-  after (done)->
-    api.del('/api/user/')
-      .set('Cookie', cookie)
-      .expect(200)
       .end (err, res)->
         return done(err) if err
 

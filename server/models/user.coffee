@@ -9,7 +9,7 @@ UserSchema = new mongoose.Schema
   role:
     type: String
     default: 'client'
-    enum: 'client manager'.split(' ')
+    enum: 'client manager admin'.split(' ')
   email:
     type: String
     default: ''
@@ -111,6 +111,7 @@ UserSchema.methods =
     lastName: @lastName
     role: @role
     picture: @picture
+    id: @_id.toString()
 
 '''
 Statics

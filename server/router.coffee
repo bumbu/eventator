@@ -38,4 +38,6 @@ exports.bindRoutes = (app)->
   app.post '/api/user/', (req, res)-> ApiUser.create req, res
   app.put '/api/user/', (req, res)-> ApiUser.update req, res
   app.delete '/api/user/', (req, res)-> ApiUser.delete req, res
-  # app.get '/api/user/:id', (req, res)->
+  app.get '/api/user/:id', (req, res)-> ApiUser.getById req, res
+  app.put '/api/user/:id', (req, res)-> ApiUser.updateById req, res
+  app.delete '/api/user/:id', (req, res)-> ApiUser.deleteById req, res

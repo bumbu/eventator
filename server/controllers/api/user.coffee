@@ -15,6 +15,16 @@ exports.get = (req, res)->
     success: true
     user: req.session_user.getPublicData()
 
+exports.getById = (req, res)->
+  await User.findById req.params.id, defer(error, user)
+
+  return errorHandler.json res, 504, 'Database error while searching for user by id' if error
+  return errorHandler.json res, 403, 'User with given id was not found' if not user
+
+  res.json
+    success: true
+    user: user.getPublicData()
+
 # Create new user
 exports.create = (req, res)->
   user = new User req._params
@@ -31,9 +41,8 @@ exports.create = (req, res)->
   res.json
     success: true
 
-# Update authenticated user
-exports.update = (req, res)->
-  User.findById req.session_user._id, (error, user)->
+userUpdateById = (req, res, id)->
+  User.findById id, (error, user)->
     # Update only allowed fields
     for key, val of User.getOverridableParams()
       if req._params[key]? and val.type is 'String'
@@ -47,17 +56,28 @@ exports.update = (req, res)->
         res.json
           success: true
 
+# Update authenticated user
+exports.update = (req, res)->
+  userUpdateById req, res, req.session_user._id
 
-# Delete authenticated user
-exports.delete = (req, res)->
-  await User.findOneAndRemove {email: req.session_user.email}, defer(error)
+# Update user by id
+exports.updateById = (req, res)->
+  userUpdateById req, res, req.params.id
+
+userDeleteById = (req, res, id, unset_session = false)->
+  await User.findOneAndRemove {_id: id}, defer(error)
 
   return errorHandler.json 504, 'Database error while deleting user' if error
 
   # Clean session
-  req.session.userId = null
+  req.session.userId = null if unset_session
 
   res.json
     success: true
 
-# app.get '/api/user/:id', (req, res)->
+# Delete authenticated user
+exports.delete = (req, res)->
+  userDeleteById req, res, req.session_user._id.toString(), true
+
+exports.deleteById = (req, res)->
+  userDeleteById req, res, req.params.id

@@ -51,7 +51,7 @@ db.once 'open', ()->
       next()
   # mixin params
   app.use (req, res, next)->
-    req._params = req.params || {}
+    req._params = {}
     for key, value of req.query
       req._params[key] = value if req._params[key] is undefined
     for key, value of req.body
