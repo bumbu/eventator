@@ -112,5 +112,16 @@ UserSchema.methods =
     type: @type
     picture: @picture
 
+'''
+Statics
+'''
+UserSchema.statics =
+  getOverridableParams: ()->
+    firstName:
+      type: 'String'
+    lastName:
+      type: 'String'
+    picture:
+      type: 'Image'
 
 module.exports = mongoose.model 'User', UserSchema

@@ -6,9 +6,14 @@ ObjectId = require('mongoose').Schema.ObjectId
 exports.doesRequireAuthentication = (url, method)->
   # Do not check non api requests
   return false if url.substr(0, 5) is not '/api/'
+  # DO not check main api path
+  return false if url is '/api/'
   # Registration
   return false if url is '/api/user/' and method.toUpperCase() is 'POST'
+  # Authentication
+  return false if url is '/api/authentication/' and method.toUpperCase() is 'POST'
   # Else path require authentication
+
   return true
 
 exports.bindRoutes = (app)->
@@ -46,28 +51,43 @@ exports.bindRoutes = (app)->
   app.post '/api/user/', (req, res)->
     user = new User req._params
 
-    user.save (error)->
-      if error
-        res.json 400,
-          success: false
-          error_message: error.message + ': ' + (error.errors[_error].message for _error of error.errors).join('; ')
-      else
-        res.json
-          success: true
+    await user.save defer(error)
+
+    if error
+      return errorHandler.json res, 400, '',
+        error_message: error.message + ': ' + (error.errors[_error].message for _error of error.errors).join('; ')
+
+    # Save into session
+    req.session.userId = user.id
+
+    res.json
+      success: true
 
   # Update authenticated user
   app.put '/api/user/', (req, res)->
-    # User = new User()
-    console.log req._params
-    res.json
-      success: true
+    User.findById req.session_user._id, (error, user)->
+      # Update only allowed fields
+      for key, val of User.getOverridableParams()
+        if req._params[key]? and val.type is 'String'
+          user[key] = req._params[key]
+
+      user.save (_error)->
+        if error
+          return errorHandler.json res, 400, '',
+            error_message: error.message + ': ' + (error.errors[_error].message for _error of error.errors).join('; ')
+        else
+          res.json
+            success: true
+
 
   # Delete authenticated user
   app.delete '/api/user/', (req, res)->
-    # await User.findOneAndRemove {email: req.session_user.email}, defer(error)
+    await User.findOneAndRemove {email: req.session_user.email}, defer(error)
 
-    # return errorHandler.json 504, 'Database error while deleting user' if error
+    return errorHandler.json 504, 'Database error while deleting user' if error
+
+    # Clean session
+    req.session.userId = null
 
     res.json
       success: true
-

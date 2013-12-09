@@ -16,7 +16,10 @@ describe 'API', ()->
       )
 
 describe 'User', (done)->
+  cookie = ''
+
   before (done)->
+    # ensure existent user
     api.post('/api/user/')
       .send
         email: 'me@bumbu.ru'
@@ -25,7 +28,31 @@ describe 'User', (done)->
         lastName: 'Bumbu'
       .end (err, res)->
         return done(err) if err
-        done()
+
+        _cookie = ''
+
+        # try to login with test user
+        api.post('/api/authentication/')
+          .type('form')
+          .send
+            email: 'test@bumbu.ru'
+            password: '123456'
+          .end (err, res)->
+            return done(err) if err
+
+            return done() if not res.body.success
+
+            # get session cookie
+            if res.header['set-cookie']?[0]?
+              _cookie = res.header['set-cookie'][0].split(';')[0]
+
+            # ensure unexistent user
+            api.del('/api/user/')
+              .set('Cookie', _cookie)
+              .expect(200)
+              .end (err, res)->
+                return done(err) if err
+                done()
 
   it 'register user, empty email address', (done)->
     api.post('/api/user/')
@@ -136,21 +163,101 @@ describe 'User', (done)->
         done()
 
   it 'successfully register an user', (done)->
-    done()
+    api.post('/api/user/')
+      .set('Cookie', cookie)
+      .send
+        email: 'test@bumbu.ru'
+        password: '123456'
+        firstName: 'Alex'
+        lastName: 'Bumbu'
+      .expect(200)
+      .expect('Content-Type', /json/)
+      .end (err, res)->
+        return done(err) if err
 
-  'retrieve registered and authenticated user data'
+        res.body.should.have.property('success').equal(true)
 
-  'try to get authenticated user data while being not authenticated'
+        # get session cookie
+        if res.header['set-cookie']?[0]?
+          cookie = res.header['set-cookie'][0].split(';')[0]
 
-  'update authenticated user data'
+        done()
 
-  'check if updated user data is right'
+  it 'retrieve registered and authenticated user data', (done)->
+    cookie.should.have.length.above(0)
+    api.get('/api/user/')
+      .set('Cookie', cookie)
+      .expect(200)
+      .expect('Content-Type', /json/)
+      .end (err, res)->
+        return done(err) if err
 
-  'self delete user'
+        res.body.should.have.property('success').equal(true)
+        res.body.should.have.property('user')
+        res.body.user.should.have.property('firstName').equal('Alex')
+        res.body.user.should.have.property('lastName').equal('Bumbu')
+
+        done()
+
+  it 'try to get authenticated user data while being not authenticated', (done)->
+    api.get('/api/user/')
+      .expect(401)
+      .expect('Content-Type', /json/)
+      .end (err, res)->
+        return done(err) if err
+
+        res.body.should.have.property('success').equal(false)
+
+        done()
+
+  it 'update authenticated user data', (done)->
+    cookie.should.have.length.above(0)
+    api.put('/api/user/')
+      .set('Cookie', cookie)
+      .send
+        firstName: 'Alexandr'
+        lastName: 'Bumbus'
+      .expect(200)
+      .expect('Content-Type', /json/)
+      .end (err, res)->
+        return done(err) if err
+
+        res.body.should.have.property('success').equal(true)
+
+        done()
+
+  it 'check if updated user data is right', (done)->
+    cookie.should.have.length.above(0)
+    api.get('/api/user/')
+      .set('Cookie', cookie)
+      .expect(200)
+      .expect('Content-Type', /json/)
+      .end (err, res)->
+        return done(err) if err
+
+        res.body.should.have.property('success').equal(true)
+        res.body.should.have.property('user')
+        res.body.user.should.have.property('firstName').equal('Alexandr')
+        res.body.user.should.have.property('lastName').equal('Bumbus')
+
+        done()
+
+  it 'self delete user', (done)->
+    api.del('/api/user/')
+      .set('Cookie', cookie)
+      .expect(200)
+      .expect('Content-Type', /json/)
+      .end (err, res)->
+        return done(err) if err
+
+        res.body.should.have.property('success').equal(true)
+
+        done()
 
 describe 'Authentication', (done)->
   # Create an random email
   # _email = Math.floor(Math.random()*99999 + 1) + '@bumbu.ru'
+  cookie = ''
 
   # Register new user
   before (done)->
@@ -168,8 +275,7 @@ describe 'Authentication', (done)->
   # delete previously created user user
   after (done)->
     api.del('/api/user/')
-      .send
-        email: 'test@bumbu.ru'
+      .set('Cookie', cookie)
       .expect(200)
       .end (err, res)->
         return done(err) if err
@@ -189,6 +295,10 @@ describe 'Authentication', (done)->
         return done(err) if err
 
         res.body.should.have.property('success').equal(true)
+
+        # get session cookie
+        if res.header['set-cookie']?[0]?
+          cookie = res.header['set-cookie'][0].split(';')[0]
 
         done()
       )
