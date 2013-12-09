@@ -1,5 +1,5 @@
 User = require('../models/user.coffee')
-errorHandler = require('../common/error.coffee')
+errorHandler = require('../libs/error.coffee')
 
 exports.check = (req, res, next)->
   return errorHandler.json res, 401, 'User not authenticated' if not req.session.userId? or not req.session.userId

@@ -1,12 +1,12 @@
 mongoose = require 'mongoose'
 crypto = require 'crypto'
-log = require('../common/logging.coffee').log
+log = require('../libs/logging.coffee').log
 
 '''
 Schema
 '''
 UserSchema = new mongoose.Schema
-  type:
+  role:
     type: String
     default: 'client'
     enum: 'client manager'.split(' ')
@@ -109,7 +109,7 @@ UserSchema.methods =
   getPublicData: ->
     firstName: @firstName
     lastName: @lastName
-    type: @type
+    role: @role
     picture: @picture
 
 '''
