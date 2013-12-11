@@ -27,12 +27,18 @@ exports.getById = (req, res)->
 
 # Create new user
 exports.create = (req, res)->
-  user = new User req._params
+  return errorHandler.json res, 400, 'You cannot create new user while being logged' if req.session_user?
+
+  params = {}
+  for key, val of User.getCreationParams()
+    if req._params[key]? and val is 'String'
+      params[key] = req._params[key]
+  user = new User params
 
   await user.save defer(error)
 
   if error
-    return errorHandler.json res, 400, '',
+    return errorHandler.json res, 400, 'Error while saving new user',
       error_message: error.message + ': ' + (error.errors[_error].message for _error of error.errors).join('; ')
 
   # Save into session
@@ -40,15 +46,20 @@ exports.create = (req, res)->
 
   res.json
     success: true
+    user: user.getPublicData()
 
 userUpdateById = (req, res, id)->
   User.findById id, (error, user)->
+    return errorHandler.json res, 503, 'Database error while searching for user by id' if error
+    return errorHandler.json res, 400, 'Error finding user by id' if not user
+    return errorHandler.json res, 405, 'Access not allowed' if not user.canBe 'updated', req.session_user
+
     # Update only allowed fields
     for key, val of User.getOverridableParams()
-      if req._params[key]? and val.type is 'String'
+      if req._params[key]? and val is 'String'
         user[key] = req._params[key]
 
-    user.save (_error)->
+    user.save (error)->
       if error
         return errorHandler.json res, 400, '',
           error_message: error.message + ': ' + (error.errors[_error].message for _error of error.errors).join('; ')
@@ -65,15 +76,19 @@ exports.updateById = (req, res)->
   userUpdateById req, res, req.params.id
 
 userDeleteById = (req, res, id, unset_session = false)->
-  await User.findOneAndRemove {_id: id}, defer(error)
+  User.findById id, (error, user)->
+    return errorHandler.json res, 503, 'Database error while searching for user by id' if error
+    return errorHandler.json res, 400, 'Error finding user by id' if not user
+    return errorHandler.json res, 405, 'Access not allowed' if not user.canBe 'deleted', req.session_user
 
-  return errorHandler.json 504, 'Database error while deleting user' if error
+    user.remove (error)->
+      return errorHandler.json res, 503, 'Database error while removing user' if error
 
-  # Clean session
-  req.session.userId = null if unset_session
+      # Clean session
+      req.session.userId = null if unset_session
 
-  res.json
-    success: true
+      res.json
+        success: true
 
 # Delete authenticated user
 exports.delete = (req, res)->

@@ -1,5 +1,12 @@
+'''
+Requires
+'''
+
 mongoose = require 'mongoose'
 crypto = require 'crypto'
+# Config
+config = require('../config.coffee')()
+# Libs
 log = require('../libs/logging.coffee').log
 
 '''
@@ -112,17 +119,36 @@ UserSchema.methods =
     role: @role
     picture: @picture
     id: @_id.toString()
+  canBe: (action, byUser)->
+    switch action
+      when 'got'
+        return true
+      when 'updated'
+        return @_id.equals(byUser._id) if byUser.role is 'client'
+        return @_id.equals(byUser._id) if byUser.role is 'manager'
+        return true if byUser.role is 'admin'
+      when 'deleted'
+        return false if byUser.role is 'client'
+        return false if byUser.role is 'manager'
+        return true if byUser.role is 'admin'
+      else
+        # For unknown actions
+        return false
 
 '''
 Statics
 '''
 UserSchema.statics =
+  getCreationParams: ()->
+    email: 'String'
+    password: 'String'
+    role: if config.mode is 'production' then 'None' else 'String'
+    firstName: 'String'
+    lastName: 'String'
+    picture: 'Image'
   getOverridableParams: ()->
-    firstName:
-      type: 'String'
-    lastName:
-      type: 'String'
-    picture:
-      type: 'Image'
+    firstName: 'String'
+    lastName: 'String'
+    picture: 'Image'
 
 module.exports = mongoose.model 'User', UserSchema

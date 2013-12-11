@@ -57,6 +57,19 @@ module.exports = function(grunt) {
           ext: '.js'
         }]
       }
+    , test: {
+        options: {
+          bare: true
+        // , sourceMap: true
+        },
+        files: [{
+          expand: true,
+          cwd: 'tests',
+          src: '**/*.coffee',
+          dest: '.compiled/tests',
+          ext: '.js'
+        }]
+      }
     },
     clean: {
       all: {
@@ -66,6 +79,7 @@ module.exports = function(grunt) {
     mochaTest: {
       test: {
         options: {
+          // reporter: 'nyan'
           reporter: 'spec' // may use nyan when having many tests
         , require: 'iced-coffee-script'
         , timeout: 2000
@@ -83,7 +97,8 @@ module.exports = function(grunt) {
   grunt.registerTask('b', ['build']);
 
   grunt.registerTask('test', [
-    'mochaTest',
+    'coffee:test'         // compile coffee to JS version into .compiled
+  , 'mochaTest',
     // 'coffee:production'
   ]);
   grunt.registerTask('t', ['test']);
