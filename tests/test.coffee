@@ -425,10 +425,14 @@ describe 'User', (done)->
       action: 'update'
       what: users.client
       expect: 200
+      additionalFields:
+        role: 'manager'
     ,
       action: 'check'
       what: users.client
       expect: 200
+      additionalFields:
+        role: 'client'
     ,
       action: 'update'
       what: users.client2
@@ -484,10 +488,14 @@ describe 'User', (done)->
       action: 'update'
       what: users.manager
       expect: 200
+      additionalFields:
+        role: 'admin'
     ,
       action: 'check'
       what: users.manager
       expect: 200
+      additionalFields:
+        role: 'manager'
     ,
       action: 'update'
       what: users.manager2
@@ -540,6 +548,26 @@ describe 'User', (done)->
       what: users.client
       expect: 200
     ,
+      # try to make client a manager
+      action: 'update'
+      what: users.client
+      expect: 200
+      additionalFields:
+        role: 'manager'
+    ,
+      action: 'check'
+      what: users.client
+      expect: 200
+      additionalFields:
+        role: 'manager'
+    ,
+      # revert back client
+      action: 'update'
+      what: users.client
+      expect: 200
+      additionalFields:
+        role: 'client'
+    ,
       action: 'update'
       what: users.manager
       expect: 200
@@ -547,6 +575,26 @@ describe 'User', (done)->
       action: 'check'
       what: users.manager
       expect: 200
+    ,
+      # try to make manager an admin
+      action: 'update'
+      what: users.manager
+      expect: 200
+      additionalFields:
+        role: 'admin'
+    ,
+      action: 'check'
+      what: users.manager
+      expect: 200
+      additionalFields:
+        role: 'admin'
+    ,
+      # revert back manager
+      action: 'update'
+      what: users.manager
+      expect: 200
+      additionalFields:
+        role: 'manager'
     ,
       action: 'update'
       what: users.admin
@@ -563,6 +611,26 @@ describe 'User', (done)->
       action: 'check'
       what: users.admin2
       expect: 200
+    ,
+      # try to make admin a client
+      action: 'update'
+      what: users.admin2
+      expect: 200
+      additionalFields:
+        role: 'client'
+    ,
+      action: 'check'
+      what: users.admin2
+      expect: 200
+      additionalFields:
+        role: 'client'
+    ,
+      # revert back manager
+      action: 'update'
+      what: users.admin2
+      expect: 200
+      additionalFields:
+        role: 'admin'
     ,
       action: 'delete'
       what: users.client
@@ -637,6 +705,10 @@ describe 'User', (done)->
               else
                 send.firstName = act.what.firstName + '_x'
                 send.lastName = act.what.lastName + '_y'
+
+              if act.additionalFields?
+                for key, value of act.additionalFields
+                  send[key] = value
             else if act.action is 'create'
               send = act.what
 
@@ -659,6 +731,9 @@ describe 'User', (done)->
                   if act.action is 'check'
                     res.body.user.should.have.property('firstName').equal(act.what.firstName)
                     res.body.user.should.have.property('lastName').equal(act.what.lastName)
+                    if act.additionalFields?
+                      for key, value of act.additionalFields
+                        res.body.user.should.have.property(key).equal(value)
                   if act.action is 'delete'
                     # Remove cookie and id from cache
                     act.what.cookie = ''

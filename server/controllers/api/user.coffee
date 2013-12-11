@@ -55,7 +55,7 @@ userUpdateById = (req, res, id)->
     return errorHandler.json res, 405, 'Access not allowed' if not user.canBe 'updated', req.session_user
 
     # Update only allowed fields
-    for key, val of User.getOverridableParams()
+    for key, val of User.getOverridableParams(req.session_user)
       if req._params[key]? and val is 'String'
         user[key] = req._params[key]
 

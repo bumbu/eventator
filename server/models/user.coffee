@@ -146,9 +146,11 @@ UserSchema.statics =
     firstName: 'String'
     lastName: 'String'
     picture: 'Image'
-  getOverridableParams: ()->
+  getOverridableParams: (byUser = {role: 'client'})->
     firstName: 'String'
     lastName: 'String'
     picture: 'Image'
+    password: 'Password'
+    role: if byUser.role is 'admin' then 'String' else 'None'
 
 module.exports = mongoose.model 'User', UserSchema
